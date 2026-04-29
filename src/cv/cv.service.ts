@@ -44,12 +44,12 @@ export class CvService {
  }
 
  findOne(id:number){
-   return this.cvs.find(c=>c.id===id);
+   return this.cvs.find(c=>c.id===+id);
  }
 
  update(id:number,data:any){
 
-   const cv=this.findOne(id);
+   const cv=this.findOne(+id);
 
    if(!cv)
       throw new NotFoundException();
@@ -67,14 +67,9 @@ export class CvService {
    return cv;
  }
 
- remove(id:number){
-
-   const cv=this.findOne(id);
-
-   this.cvs=this.cvs.filter(
-      c=>c.id!==id
-   );
-
+remove(id:number){
+   const cv=this.findOne(+id);
+   if(!cv) throw new NotFoundException();
    this.eventEmitter.emit(
       'cv.deleted',
       {
@@ -82,8 +77,9 @@ export class CvService {
        date:new Date()
       }
    );
-
+   this.cvs=this.cvs.filter(
+      c=>c.id!==+id
+   );
    return cv;
  }
-
 }
