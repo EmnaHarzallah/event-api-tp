@@ -6,6 +6,7 @@ import { CvHistoryModule } from './cv-history/cv-history.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { CvHistory } from './cv-history/cv-history.entity';
+import { SseModule } from './sse/sse.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { CvHistory } from './cv-history/cv-history.entity';
     }),
     CvModule,
     CvHistoryModule,
+    SseModule,
   ],
   controllers: [AppController],
   providers: [AppService],
