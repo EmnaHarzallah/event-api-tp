@@ -5,7 +5,7 @@ export interface AuthenticatedUser {
   id: string;
   role: string;
 }
-
+//creer un decorateur pour extraire l'utilisateur authentifié de la requete (@GetUser() dans les controllers)
 export const GetUser = createParamDecorator(
   (data: unknown, ctx: ExecutionContext): AuthenticatedUser => {
     const request = ctx.switchToHttp().getRequest<Request>();
