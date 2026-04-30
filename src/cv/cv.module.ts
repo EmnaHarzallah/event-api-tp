@@ -6,7 +6,7 @@ import { CvController } from './cv.controller';
 
 @Module({
   providers: [//CvGateway, 
-    CvService],
+CvService],
   controllers: [CvController],
   exports: [CvService],
 })

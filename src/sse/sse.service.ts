@@ -3,7 +3,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Observable, fromEvent, merge } from 'rxjs';
 import { map, filter, startWith } from 'rxjs/operators';
 import { AuthenticatedUser } from '../common/decorators/user.decorator';
-import { CvEventPayload } from '../events/cv-event.interface';
+import { CvEventPayload } from '../events/cv-event.payload';
 
 // Interface defining the expected message event structure for SSE
 export interface MessageEvent {
