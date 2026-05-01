@@ -12,7 +12,7 @@ export class CvHistory {
   timestamp!: Date;
 
   @Column()
-  owner!: string;
+  actor!: string;
 
   @Column()
   cvId!: number;

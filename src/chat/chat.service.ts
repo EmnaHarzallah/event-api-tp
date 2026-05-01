@@ -4,7 +4,7 @@ import { Repository } from 'typeorm';
 import { Message, MessageType } from './message.entity';
 import { CvFeedback } from './cv-feedback.entity';
 import { SendMessageDto, ShareCvDto, RateCvDto } from './chat.dto';
-
+//user stocké en memoire ram
 interface ConnectedUser {
   userId: string;
   username: string;
@@ -14,8 +14,8 @@ interface ConnectedUser {
 @Injectable()
 export class ChatService {
   // socketId -> user (in-memory, réinitialisé au redémarrage)
-  private connectedUsers = new Map<string, ConnectedUser>();
-  // userId -> socketId (index inverse pour l'envoi ciblé)
+  private connectedUsers = new Map<string, ConnectedUser>();//user: objet contenant userId, username et socketId
+  // userId -> socketId (index inverse pour l'envoi ciblé) mapping entre userId ( auquel on va envoyer un message) et le socketId de celui qui va le recevoir
   private userToSocket = new Map<string, string>();
 
   constructor(
@@ -93,12 +93,12 @@ export class ChatService {
     // Une note par utilisateur par CV — mise à jour si elle existe déjà
     let feedback = await this.feedbackRepo.findOne({
       where: { cvId: dto.cvId, reviewerId: dto.reviewerId },
-    });
+    });//ici on recupère le feedback si il existe
 
-    if (feedback) {
+    if (feedback) {//si le feedback existe on met à jour la note
       feedback.score = dto.score;
       feedback.comment = dto.comment;
-    } else {
+    } else {//sinon on crée un nouveau feedback
       feedback = this.feedbackRepo.create({
         cvId: dto.cvId,
         reviewerId: dto.reviewerId,
@@ -121,7 +121,7 @@ export class ChatService {
   async getFeedbacksForCv(cvId: number): Promise<CvFeedback[]> {
     return this.feedbackRepo.find({
       where: { cvId },
-      order: { createdAt: 'DESC' },
+        order: { createdAt: 'DESC' },
     });
   }
 

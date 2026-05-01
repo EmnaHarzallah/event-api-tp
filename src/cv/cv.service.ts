@@ -8,8 +8,7 @@ import { Cv } from './entities/cv.entity';
 import { CreateCvDto } from './dto/create-cv.dto';
 import { UpdateCvDto } from './dto/update-cv.dto';
 import { CvEventPayload } from 'src/events/cv-event.payload';
-
-type CvEventType = 'cv.created' | 'cv.updated' | 'cv.deleted';
+import { APP_EVENTS, CvEventType } from 'src/config/event.config';
 
 @Injectable()
 export class CvService {
@@ -47,7 +46,7 @@ export class CvService {
 
     this.cvs.push(cv);
 
-    this.emitCvEvent('cv.created', cv, owner);
+    this.emitCvEvent(APP_EVENTS.CvCreated, cv, owner);
 
     return cv;
   }
@@ -70,7 +69,7 @@ export class CvService {
 
     Object.assign(cv, data);
 
-    this.emitCvEvent('cv.updated', cv, actor);
+    this.emitCvEvent(APP_EVENTS.CvUpdated, cv, actor);
 
     return cv;
   }
@@ -81,7 +80,7 @@ export class CvService {
 
     if (!cv) throw new NotFoundException();
 
-    this.emitCvEvent('cv.deleted', cv, actor);
+    this.emitCvEvent(APP_EVENTS.CvDeleted, cv, actor);
 
     this.cvs = this.cvs.filter(c => c.id !== +id);
 

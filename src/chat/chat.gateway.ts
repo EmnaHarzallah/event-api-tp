@@ -20,7 +20,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   constructor(
     private readonly chatService: ChatService,
     private readonly cvService: CvService,
-  ) {}
+  ) { }
 
   // ─── Lifecycle ─────────────────────────────────────────────────────────────
 
@@ -30,7 +30,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   handleDisconnect(client: Socket) {
     const user = this.chatService.removeUser(client.id);
-    if (user) {
+    if (user) {//succès de la suppression de l'utilisateur du chat, on diffuse à tout le monde connecté dans ce chat la mise à jour de la liste des utilisateurs
       this.server.emit('usersOnline', {
         users: this.chatService.getOnlineUsers(),
       });
@@ -66,7 +66,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     try {
       const history = await this.chatService.getMessagesForUser(data.userId);
-      client.emit('chatHistory', history);
+      client.emit('chatHistory', history);// envoie l'historique des messages au client qui vient de se connecter
     } catch (err) {
       console.error('[WS] chatHistory error:', err);
       client.emit('chatHistory', []);
@@ -92,9 +92,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
           return;
         }
         this.server.to(targetSocket).emit('newMessage', message);
-        client.emit('newMessage', message);
+        client.emit('messageSent', message);// pour confirmer à l'utilisateur que le message a été envoyé
       } else {
-        this.server.emit('newMessage', message);
+        client.broadcast.emit('newMessage', message);//diffusion à tout le monde sauf à l'expéditeur
+        client.emit('messageSentToAll', message);// pour confirmer à l'utilisateur que le message a été envoyé
       }
     } catch (err) {
       console.error('[WS] sendMessage error:', err);
@@ -117,7 +118,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         this.sendError(client, `CV ${data.cvId} not found`);
         return;
       }
-
+      //transformer le dto du cv partagé en message pour l'enregistrer dans la base de données
       const message = await this.chatService.saveCvShareMessage(data);
 
       const payload = {
@@ -135,9 +136,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
           return;
         }
         this.server.to(targetSocket).emit('cvShared', payload);
-        client.emit('cvShared', payload);
+        client.emit('cvSent', payload);
       } else {
-        this.server.emit('cvShared', payload);
+        client.broadcast.emit('cvShared', payload);
+        this.server.emit('cvSharedToAll', payload);
       }
     } catch (err) {
       console.error('[WS] shareCv error:', err);
@@ -159,9 +161,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
 
     try {
-      const result = await this.chatService.rateCv(data);
+      const result = await this.chatService.rateCv(data);//ajouter ou mettre à jour la note donnée par le reviewer pour le cv
 
-      this.server.emit('cvRated', {
+      client.broadcast.emit('cvRated', {
         cvId: data.cvId,
         reviewerId: data.reviewerId,
         reviewerName: data.reviewerName,
@@ -169,6 +171,12 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         comment: data.comment,
         averageScore: result.averageScore,
         totalReviews: result.totalReviews,
+      });
+      client.emit('cvRatedAck', {
+        cvId: data.cvId,
+        averageScore: result.averageScore,
+        totalReviews: result.totalReviews,
+        status: 'SUCCESS'
       });
     } catch (err) {
       console.error('[WS] rateCv error:', err);
