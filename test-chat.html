@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <title>CvTech Chat — Test WebSocket</title>
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: monospace; background: #1e1e1e; color: #d4d4d4; padding: 16px; }
+    h2 { color: #569cd6; margin-bottom: 12px; }
+    .row { display: flex; gap: 16px; margin-bottom: 16px; flex-wrap: wrap; }
+    .panel { background: #252526; border: 1px solid #3c3c3c; border-radius: 4px; padding: 12px; flex: 1; min-width: 260px; }
+    .panel h3 { color: #9cdcfe; margin-bottom: 8px; font-size: 13px; text-transform: uppercase; }
+    input, textarea { width: 100%; background: #3c3c3c; border: 1px solid #555; color: #d4d4d4; padding: 6px 8px; border-radius: 3px; font-family: monospace; font-size: 13px; margin-bottom: 6px; }
+    button { background: #0e639c; color: #fff; border: none; padding: 6px 14px; border-radius: 3px; cursor: pointer; font-size: 13px; margin-right: 4px; }
+    button:hover { background: #1177bb; }
+    button.danger { background: #822; }
+    button.danger:hover { background: #a33; }
+    #log { background: #1a1a1a; border: 1px solid #3c3c3c; border-radius: 4px; padding: 10px; height: 320px; overflow-y: auto; font-size: 12px; }
+    .log-in  { color: #4ec9b0; }
+    .log-out { color: #ce9178; }
+    .log-sys { color: #888; font-style: italic; }
+    .log-err { color: #f44747; }
+    .badge { display: inline-block; background: #0e639c; color: #fff; border-radius: 10px; padding: 1px 8px; font-size: 11px; margin-left: 6px; }
+    #status { font-size: 12px; margin-bottom: 12px; }
+    #status.on  { color: #4ec9b0; }
+    #status.off { color: #f44747; }
+  </style>
+</head>
+<body>
+<h2>CvTech Chat — Client de test WebSocket</h2>
+<div id="status" class="off">● Déconnecté</div>
+
+<div class="row">
+  <!-- Connexion -->
+  <div class="panel">
+    <h3>1. Connexion</h3>
+    <input id="userId"   placeholder="userId   ex: u1" value="u1" />
+    <input id="username" placeholder="username  ex: Alice" value="Alice" />
+    <button type="button" onclick="connect()">Se connecter</button>
+    <button type="button" class="danger" onclick="disconnectSocket()">Déconnecter</button>
+  </div>
+
+  <!-- Utilisateurs en ligne -->
+  <div class="panel">
+    <h3>Utilisateurs en ligne <span id="onlineCount" class="badge">0</span></h3>
+    <div id="onlineList" style="font-size:12px;color:#888;">—</div>
+  </div>
+</div>
+
+<div class="row">
+  <!-- Message texte -->
+  <div class="panel">
+    <h3>2. Envoyer un message</h3>
+    <input id="msgContent"    placeholder="Contenu du message" />
+    <input id="msgReceiverId" placeholder="receiverId (optionnel — message privé)" />
+    <button type="button" onclick="sendMessage()">Envoyer</button>
+  </div>
+
+  <!-- Partager un CV -->
+  <div class="panel">
+    <h3>3. Partager un CV</h3>
+    <input id="shareCvId"      placeholder="cvId  (créer via POST /cv d'abord)" />
+    <input id="shareContent"   placeholder="Message d'accompagnement" value="Voici mon CV !" />
+    <input id="shareReceiver"  placeholder="receiverId (optionnel)" />
+    <button type="button" onclick="shareCv()">Partager</button>
+  </div>
+
+  <!-- Noter un CV -->
+  <div class="panel">
+    <h3>4. Noter un CV</h3>
+    <input id="rateCvId"    placeholder="cvId" />
+    <input id="rateScore"   placeholder="Score (0–10)" type="number" min="0" max="10" />
+    <input id="rateComment" placeholder="Commentaire (optionnel)" />
+    <button type="button" onclick="rateCv()">Noter</button>
+  </div>
+</div>
+
+<!-- Log -->
+<h3 style="color:#9cdcfe;margin-bottom:6px;font-size:13px;">JOURNAL DES ÉVÉNEMENTS</h3>
+<div id="log"></div>
+<br><button type="button" onclick="clearLog()" style="background:#333;">Effacer le log</button>
+
+<script>
+  let socket = null;
+
+  function log(text, cls = '') {
+    const div = document.getElementById('log');
+    const time = new Date().toLocaleTimeString();
+    div.innerHTML += `<div class="${cls}">[${time}] ${text}</div>`;
+    div.scrollTop = div.scrollHeight;
+  }
+
+  function connect() {
+    if (socket?.connected) { log('Déjà connecté.', 'log-sys'); return; }
+
+    socket = io('http://localhost:3000');
+
+    socket.on('connect', () => {
+      document.getElementById('status').textContent = `● Connecté (${socket.id})`;
+      document.getElementById('status').className = 'on';
+      log(`Connecté au serveur`, 'log-sys');
+
+      const userId   = document.getElementById('userId').value;
+      const username = document.getElementById('username').value;
+      socket.emit('joinChat', { userId, username });
+    });
+
+    socket.on('disconnect', (reason) => {
+      document.getElementById('status').textContent = '● Déconnecté';
+      document.getElementById('status').className = 'off';
+      log(`Déconnecté du serveur (reason: ${reason})`, 'log-sys');
+    });
+
+    socket.on('connect_error', (err) =>
+      log(`→ connect_error : ${err.message}`, 'log-err'));
+
+    socket.on('joinedChat', (d) =>
+      log(`→ joinedChat : ${d.username} (${d.userId}) a rejoint`, 'log-in'));
+
+    socket.on('chatHistory', (msgs) => {
+      log(`→ chatHistory : ${msgs.length} message(s) reçu(s)`, 'log-sys');
+      msgs.forEach(m => log(`  [${m.type}] ${m.senderName}: ${m.content}`, 'log-sys'));
+    });
+
+    socket.on('usersOnline', (d) => {
+      const names = d.users.map(u => u.username).join(', ');
+      document.getElementById('onlineList').textContent = names || '—';
+      document.getElementById('onlineCount').textContent = d.users.length;
+      log(`→ usersOnline : [${names}]`, 'log-sys');
+    });
+
+    socket.on('newMessage', (m) =>
+      log(`→ newMessage [${m.receiverId ? '🔒 privé' : 'public'}] ${m.senderName}: ${m.content}`, 'log-in'));
+
+    socket.on('cvShared', (p) =>
+      log(`→ cvShared [${p.receiverId ? '🔒 privé' : 'public'}] ${p.senderName} partage CV #${p.cv.id} (${p.cv.name}) — "${p.message.content}"`, 'log-in'));
+
+    socket.on('cvRated', (p) =>
+      log(`→ cvRated  CV #${p.cvId} noté ${p.score}/10 par ${p.reviewerName} | moy: ${p.averageScore}/10 (${p.totalReviews} note(s)) — "${p.comment ?? ''}"`, 'log-in'));
+
+    socket.on('chatError', (e) =>
+      log(`→ erreur : ${e.message}`, 'log-err'));
+  }
+
+  function disconnectSocket() {
+    socket?.disconnect();
+    socket = null;
+  }
+
+  function sendMessage() {
+    if (!socket?.connected) { log('Non connecté', 'log-err'); return; }
+    const content    = document.getElementById('msgContent').value;
+    const receiverId = document.getElementById('msgReceiverId').value || undefined;
+    const userId     = document.getElementById('userId').value;
+    const username   = document.getElementById('username').value;
+    if (!content) { log('Contenu vide', 'log-err'); return; }
+    socket.emit('sendMessage', { senderId: userId, senderName: username, content, receiverId });
+    log(`← sendMessage : "${content}"${receiverId ? ` → ${receiverId}` : ''}`, 'log-out');
+  }
+
+  function shareCv() {
+    if (!socket?.connected) { log('Non connecté', 'log-err'); return; }
+    const cvId      = parseInt(document.getElementById('shareCvId').value);
+    const content   = document.getElementById('shareContent').value || 'Voici mon CV !';
+    const receiverId = document.getElementById('shareReceiver').value || undefined;
+    const userId    = document.getElementById('userId').value;
+    const username  = document.getElementById('username').value;
+    if (!cvId) { log('cvId requis', 'log-err'); return; }
+    socket.emit('shareCv', { senderId: userId, senderName: username, cvId, content, receiverId });
+    log(`← shareCv : CV #${cvId}${receiverId ? ` → ${receiverId}` : ' → tous'}`, 'log-out');
+  }
+
+  function rateCv() {
+    if (!socket?.connected) { log('Non connecté', 'log-err'); return; }
+    const cvId      = parseInt(document.getElementById('rateCvId').value);
+    const score     = parseFloat(document.getElementById('rateScore').value);
+    const comment   = document.getElementById('rateComment').value || undefined;
+    const userId    = document.getElementById('userId').value;
+    const username  = document.getElementById('username').value;
+    if (!cvId || isNaN(score)) { log('cvId et score requis', 'log-err'); return; }
+    socket.emit('rateCv', { cvId, reviewerId: userId, reviewerName: username, score, comment });
+    log(`← rateCv : CV #${cvId} → ${score}/10`, 'log-out');
+  }
+
+  function clearLog() {
+    document.getElementById('log').innerHTML = '';
+  }
+</script>
+</body>
+</html>
