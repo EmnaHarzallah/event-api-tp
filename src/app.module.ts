@@ -10,6 +10,7 @@ import { Message } from './chat/message.entity';
 import { CvFeedback } from './chat/cv-feedback.entity';
 import { SseModule } from './sse/sse.module';
 import { ChatModule } from './chat/chat.module';
+import { WebhookModule } from './webhook/webhook.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { ChatModule } from './chat/chat.module';
     CvHistoryModule,
     SseModule,
     ChatModule,
+    WebhookModule,
   ],
   controllers: [AppController],
   providers: [AppService],
