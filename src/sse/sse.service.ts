@@ -16,7 +16,7 @@ export interface MessageEvent {
 
 @Injectable()
 export class SseService {
-  constructor(private readonly eventEmitter: EventEmitter2) {}
+  constructor(private readonly eventEmitter: EventEmitter2) { }
 
   subscribeToCvEvents(user: AuthenticatedUser): Observable<MessageEvent> {
     const isAdmin = user.role === 'admin';
@@ -33,12 +33,12 @@ export class SseService {
     );
 
     // 2. Merge them into a single observable stream
-    const allEvents$ = merge(created$, updated$, deleted$);
+    const allEvents$ = merge(created$, updated$, deleted$, skillsVerified$);
 
     // 3. Apply filters and format the output stream
     return allEvents$.pipe(
       // Filter: Admin sees everything, normal user sees only their own CVs
-      filter(event => isAdmin || event.payload.cv?.owner === user.id),
+      filter(event => isAdmin || event.owner === user.id),
       // Map the payload to the expected SSE MessageEvent format
       map(event => ({
         data: {
