@@ -4,6 +4,7 @@ import { Observable, fromEvent, merge } from 'rxjs';
 import { map, filter, startWith } from 'rxjs/operators';
 import { AuthenticatedUser } from '../common/decorators/user.decorator';
 import { CvEventPayload } from '../events/cv-event.payload';
+import { APP_EVENTS } from '../config/event.config';
 
 // Interface defining the expected message event structure for SSE
 export interface MessageEvent {
@@ -21,14 +22,14 @@ export class SseService {
     const isAdmin = user.role === 'admin';
 
     // 1. Create streams for each event type (strongly typed)
-    const created$ = fromEvent<CvEventPayload>(this.eventEmitter, 'cv.created').pipe(
-      map(payload => ({ type: 'cv.created', payload }))
+    const created$ = fromEvent<CvEventPayload>(this.eventEmitter, APP_EVENTS.CvCreated).pipe(
+      map(payload => ({ type: APP_EVENTS.CvCreated, payload }))
     );
-    const updated$ = fromEvent<CvEventPayload>(this.eventEmitter, 'cv.updated').pipe(
-      map(payload => ({ type: 'cv.updated', payload }))
+    const updated$ = fromEvent<CvEventPayload>(this.eventEmitter, APP_EVENTS.CvUpdated).pipe(
+      map(payload => ({ type: APP_EVENTS.CvUpdated, payload }))
     );
-    const deleted$ = fromEvent<CvEventPayload>(this.eventEmitter, 'cv.deleted').pipe(
-      map(payload => ({ type: 'cv.deleted', payload }))
+    const deleted$ = fromEvent<CvEventPayload>(this.eventEmitter, APP_EVENTS.CvDeleted).pipe(
+      map(payload => ({ type: APP_EVENTS.CvDeleted, payload }))
     );
 
     // 2. Merge them into a single observable stream

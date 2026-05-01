@@ -11,11 +11,11 @@ export class CvHistoryService {
     private readonly cvHistoryRepository: Repository<CvHistory>,
   ) {}
 
-  async saveOperation(eventType: string, cvId: number, owner: string, payload: any): Promise<void> {
+  async saveOperation(eventType: string, cvId: number, actor: string, payload: any): Promise<void> {
     const operation = this.cvHistoryRepository.create({
       eventType,
       cvId,
-      owner,
+      actor,
       payload,
     });
     await this.cvHistoryRepository.save(operation);

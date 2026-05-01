@@ -13,7 +13,7 @@ async function bootstrap() {
   app.enableCors({ origin: '*' });
 
   // Serve static files from project root → http://localhost:3000/test-chat.html
-  app.useStaticAssets(process.cwd());
+  app.useStaticAssets(process.cwd());// pour acceder aux fichirs statiques comme test-chat.html sous src via les urls, en navigateur
 
   await app.listen(process.env.PORT ?? 3000);
 }
