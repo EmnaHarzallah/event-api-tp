@@ -2,8 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import type { CvEventPayload } from '../events/cv-event.payload';
 
-const SKILLS_VERIFIER_URL = 'http://localhost:3001/verify';
-const CVTECH_CALLBACK_URL = 'http://localhost:3000/webhooks/skills-result';
+const SKILLS_VERIFIER_URL = 'http://localhost:3001/verify';//indiquée par le controleur du service tiers
+const CVTECH_CALLBACK_URL = 'http://localhost:3000/webhooks/skills-result';//indiquée par le controleur du webhook
 
 @Injectable()
 export class WebhookService {
@@ -17,17 +17,17 @@ export class WebhookService {
   async handleCvUpdated(payload: CvEventPayload): Promise<void> {
     await this.sendToSkillsVerifier(payload);
   }
-
+//envoyer le cv au service tiers (verifier les compétences)
   private async sendToSkillsVerifier(payload: CvEventPayload): Promise<void> {
     const body = {
       cvId: payload.cv.id,
       owner: payload.cv.owner,
       skills: payload.cv.skills,
-      callbackUrl: CVTECH_CALLBACK_URL,
+      callbackUrl: CVTECH_CALLBACK_URL,//URL ou le serveur tiers doit envoyer le resultat de vérification
     };
 
     try {
-      const response = await fetch(SKILLS_VERIFIER_URL, {
+      const response = await fetch(SKILLS_VERIFIER_URL, {//appeler le serveur tiers avec les données du cv
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),

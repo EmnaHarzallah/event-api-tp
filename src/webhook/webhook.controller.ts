@@ -18,7 +18,7 @@ export interface SkillsResultDto {
 
 @Controller('webhooks')
 export class WebhookController {
-  constructor(private readonly eventEmitter: EventEmitter2) {}
+  constructor(private readonly eventEmitter: EventEmitter2) { }
 
   @Post('skills-result')
   @HttpCode(200)
@@ -29,7 +29,7 @@ export class WebhookController {
       `verified: [${result.verifiedSkills.join(', ')}]`,
     );
 
-    // Propage le résultat dans l'event bus interne → SSE le récupère
+    // Propage le résultat dans l'event bus interne → SSE le récupère pour visualiser les résultats de vérification via /sse.
     this.eventEmitter.emit('cv.skills.verified', result);
 
     return { received: true };

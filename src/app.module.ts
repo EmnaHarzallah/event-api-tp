@@ -11,6 +11,7 @@ import { CvFeedback } from './chat/cv-feedback.entity';
 import { SseModule } from './sse/sse.module';
 import { ChatModule } from './chat/chat.module';
 import { WebhookModule } from './webhook/webhook.module';
+import { Cv } from './cv/entities/cv.entity';
 
 @Module({
   imports: [
@@ -18,8 +19,9 @@ import { WebhookModule } from './webhook/webhook.module';
     TypeOrmModule.forRoot({
       type: 'sqlite',
       database: 'db.sqlite',
-      entities: [CvHistory, Message, CvFeedback],
+      entities: [CvHistory, Message, CvFeedback, Cv],
       synchronize: true,
+      autoLoadEntities: true,
     }),
     CvModule,
     CvHistoryModule,
