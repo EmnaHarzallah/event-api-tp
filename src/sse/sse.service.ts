@@ -4,11 +4,8 @@ import { Observable, fromEvent, merge } from 'rxjs';
 import { map, filter, startWith } from 'rxjs/operators';
 import { AuthenticatedUser } from '../common/decorators/user.decorator';
 import { CvEventPayload } from '../events/cv-event.payload';
-<<<<<<< HEAD
 import { APP_EVENTS } from '../config/event.config';
-=======
 import { SkillsResultDto } from '../webhook/webhook.controller';
->>>>>>> 44b983a (feat(webhook): implement GitHub skills verification pipeline)
 
 // Interface defining the expected message event structure for SSE
 export interface MessageEvent {
@@ -20,34 +17,25 @@ export interface MessageEvent {
 
 @Injectable()
 export class SseService {
-  constructor(private readonly eventEmitter: EventEmitter2) {}
+  constructor(private readonly eventEmitter: EventEmitter2) { }
 
   subscribeToCvEvents(user: AuthenticatedUser): Observable<MessageEvent> {
     const isAdmin = user.role === 'admin';
 
     // 1. Create streams for each event type (strongly typed)
-
     const created$ = fromEvent<CvEventPayload>(this.eventEmitter, APP_EVENTS.CvCreated).pipe(
-      map(payload => ({ type: APP_EVENTS.CvCreated, payload }))
+      map(payload => ({ type: APP_EVENTS.CvCreated, owner: payload.cv.owner, payload }))
     );
     const updated$ = fromEvent<CvEventPayload>(this.eventEmitter, APP_EVENTS.CvUpdated).pipe(
-      map(payload => ({ type: APP_EVENTS.CvUpdated, payload }))
+      map(payload => ({ type: APP_EVENTS.CvUpdated, owner: payload.cv.owner, payload }))
     );
     const deleted$ = fromEvent<CvEventPayload>(this.eventEmitter, APP_EVENTS.CvDeleted).pipe(
-      map(payload => ({ type: APP_EVENTS.CvDeleted, payload }))
-    const created$ = fromEvent<CvEventPayload>(this.eventEmitter, 'cv.created').pipe(
-      map(payload => ({ type: 'cv.created', owner: payload.cv.owner, payload }))
-    );
-    const updated$ = fromEvent<CvEventPayload>(this.eventEmitter, 'cv.updated').pipe(
-      map(payload => ({ type: 'cv.updated', owner: payload.cv.owner, payload }))
-    );
-    const deleted$ = fromEvent<CvEventPayload>(this.eventEmitter, 'cv.deleted').pipe(
-      map(payload => ({ type: 'cv.deleted', owner: payload.cv.owner, payload }))
+      map(payload => ({ type: APP_EVENTS.CvDeleted, owner: payload.cv.owner, payload }))
     );
 
     // Stream du résultat de vérification GitHub renvoyé par le Skills Verifier
-    const skillsVerified$ = fromEvent<SkillsResultDto>(this.eventEmitter, 'cv.skills.verified').pipe(
-      map(payload => ({ type: 'cv.skills.verified', owner: payload.owner, payload }))
+    const skillsVerified$ = fromEvent<SkillsResultDto>(this.eventEmitter, APP_EVENTS.SkillsVerified).pipe(
+      map(payload => ({ type: APP_EVENTS.SkillsVerified, owner: payload.owner, payload }))
     );
 
     // 2. Merge them into a single observable stream

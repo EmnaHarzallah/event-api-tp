@@ -2,7 +2,8 @@ import {
   Injectable,
   NotFoundException
 } from '@nestjs/common';
-
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Cv } from './entities/cv.entity';
 import { CreateCvDto } from './dto/create-cv.dto';
@@ -13,9 +14,9 @@ import { APP_EVENTS, CvEventType } from 'src/config/event.config';
 @Injectable()
 export class CvService {
 
-  private cvs: Cv[] = [];
-
   constructor(
+    @InjectRepository(Cv)
+    private readonly cvRepository: Repository<Cv>,
     private eventEmitter: EventEmitter2
   ) {}
 
@@ -35,54 +36,55 @@ export class CvService {
   }
 
   // CREATE
-  create(data: CreateCvDto, owner: string) {
+  async create(data: CreateCvDto, owner: string) {
     const cv = new Cv(
-      Date.now(),
       data.name,
       data.email,
       data.skills,
       owner
     );
 
-    this.cvs.push(cv);
+    const savedCv = await this.cvRepository.save(cv);
 
-    this.emitCvEvent(APP_EVENTS.CvCreated, cv, owner);
+    this.emitCvEvent(APP_EVENTS.CvCreated, savedCv, owner);
 
-    return cv;
+    return savedCv;
   }
 
   // READ ALL
-  findAll() {
-    return this.cvs;
+  async findAll() {
+    return await this.cvRepository.find();
   }
 
   // READ ONE
-  findOne(id: number) {
-    return this.cvs.find(c => c.id === +id);
+  async findOne(id: number) {
+    const cv = await this.cvRepository.findOne({ where: { id: +id } });
+    return cv;
   }
 
   // UPDATE
-  update(id: number, data: UpdateCvDto, actor: string) {
-    const cv = this.findOne(+id);
+  async update(id: number, data: UpdateCvDto, actor: string) {
+    const cv = await this.findOne(+id);
 
     if (!cv) throw new NotFoundException();
 
     Object.assign(cv, data);
+    const updatedCv = await this.cvRepository.save(cv);
 
-    this.emitCvEvent(APP_EVENTS.CvUpdated, cv, actor);
+    this.emitCvEvent(APP_EVENTS.CvUpdated, updatedCv, actor);
 
-    return cv;
+    return updatedCv;
   }
 
   // DELETE
-  remove(id: number, actor: string) {
-    const cv = this.findOne(+id);
+  async remove(id: number, actor: string) {
+    const cv = await this.findOne(+id);
 
     if (!cv) throw new NotFoundException();
 
     this.emitCvEvent(APP_EVENTS.CvDeleted, cv, actor);
 
-    this.cvs = this.cvs.filter(c => c.id !== +id);
+    await this.cvRepository.remove(cv);
 
     return cv;
   }
